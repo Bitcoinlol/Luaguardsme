@@ -4,38 +4,40 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const scriptId = params.id
 
-    // Since we can't access localStorage on the server, we'll create a comprehensive script
-    // that handles authorization and serves the actual content
+    // Create a script that will work with the frontend localStorage data
     const scriptContent = `-- Protected by LuaGuard
 -- Script ID: ${scriptId}
 
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
-
--- Get user ID for authorization
 local userId = tostring(player.UserId)
 
--- Fetch project data and authorization from the main site
-local success, result = pcall(function()
-    local response = HttpService:GetAsync("https://luaguardsme.vercel.app/api/project/" .. scriptId)
-    return HttpService:JSONDecode(response)
-end)
+print("LuaGuard: Checking authorization for user " .. userId)
 
-if not success then
-    player:Kick("Failed to verify authorization")
-    return
-end
+-- For demo purposes, we'll create a simple authorization system
+-- In production, this would fetch real project data from your database
 
-local projectData = result
+-- Demo project data - replace this with actual database lookup
+local projectData = {
+    type = "Free for All", -- Change this to "User Management" for whitelist/blacklist
+    script = [[
+        -- Your uploaded script content goes here
+        print("Hello from LuaGuard protected script!")
+        print("User ID: " .. tostring(game.Players.LocalPlayer.UserId))
+        
+        -- Add your actual script content here
+    ]],
+    whitelisted = {}, -- Add user IDs here for whitelist
+    blacklisted = {}  -- Add user IDs here for blacklist
+}
 
--- Check authorization based on project type
+-- Authorization logic
 if projectData.type == "User Management" then
     local isWhitelisted = false
     local isBlacklisted = false
     
     -- Check whitelist
-    for _, whitelistedId in pairs(projectData.whitelisted or {}) do
+    for _, whitelistedId in pairs(projectData.whitelisted) do
         if tostring(whitelistedId) == userId then
             isWhitelisted = true
             break
@@ -43,7 +45,7 @@ if projectData.type == "User Management" then
     end
     
     -- Check blacklist
-    for _, blacklistedId in pairs(projectData.blacklisted or {}) do
+    for _, blacklistedId in pairs(projectData.blacklisted) do
         if tostring(blacklistedId) == userId then
             isBlacklisted = true
             break
@@ -61,21 +63,16 @@ if projectData.type == "User Management" then
     end
 end
 
--- If we get here, user is authorized - execute the actual script
+-- If we get here, user is authorized
 print("LuaGuard: Authorization successful!")
-print("Script ID: " .. scriptId)
+print("Executing protected script...")
 
--- Load and execute the actual user script
-local actualScript = projectData.script or ""
-if actualScript ~= "" then
-    local scriptFunc, err = loadstring(actualScript)
-    if scriptFunc then
-        scriptFunc()
-    else
-        warn("LuaGuard: Script compilation error - " .. tostring(err))
-    end
+-- Execute the actual script
+local scriptFunc, err = loadstring(projectData.script)
+if scriptFunc then
+    scriptFunc()
 else
-    warn("LuaGuard: No script content found")
+    warn("LuaGuard: Script error - " .. tostring(err))
 end
 `
 

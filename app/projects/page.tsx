@@ -127,7 +127,7 @@ export default function ProjectsPage() {
       id: projectId,
       name: newProject.name,
       type: newProject.type,
-      script: scriptContent,
+      script: scriptContent, // Store actual script content
       rawLink,
       whitelisted: [],
       blacklisted: [],

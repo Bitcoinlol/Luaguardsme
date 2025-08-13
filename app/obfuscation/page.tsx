@@ -19,8 +19,6 @@ export default function Obfuscation() {
   const [currentStep, setCurrentStep] = useState(0)
   const [showPanel, setShowPanel] = useState(true)
   const [obfuscatedCode, setObfuscatedCode] = useState<string>("")
-  const [showNotification, setShowNotification] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -73,70 +71,7 @@ export default function Obfuscation() {
     }
   }
 
-  const isLuaCode = (code: string): boolean => {
-    // Check for common Lua keywords and patterns
-    const luaKeywords = [
-      "local",
-      "function",
-      "end",
-      "if",
-      "then",
-      "else",
-      "elseif",
-      "while",
-      "do",
-      "for",
-      "repeat",
-      "until",
-      "break",
-      "return",
-      "and",
-      "or",
-      "not",
-      "true",
-      "false",
-      "nil",
-    ]
-
-    // Check for Lua-specific patterns
-    const luaPatterns = [
-      /\blocal\s+\w+\s*=/, // local variable declarations
-      /\bfunction\s+\w+\s*\(/, // function declarations
-      /\bend\b/, // end keyword
-      /\bthen\b/, // then keyword
-      /\bdo\b/, // do keyword
-      /--.*$/m, // Lua comments
-      /\[\[.*?\]\]/s, // Lua multi-line strings
-      /\bprint\s*\(/, // print function
-      /\brequire\s*\(/, // require function
-    ]
-
-    // Count keyword matches
-    let keywordMatches = 0
-    luaKeywords.forEach((keyword) => {
-      const regex = new RegExp(`\\b${keyword}\\b`, "gi")
-      const matches = code.match(regex)
-      if (matches) keywordMatches += matches.length
-    })
-
-    // Count pattern matches
-    let patternMatches = 0
-    luaPatterns.forEach((pattern) => {
-      if (pattern.test(code)) patternMatches++
-    })
-
-    // Consider it Lua if we have at least 2 keyword matches or 1 pattern match
-    return keywordMatches >= 2 || patternMatches >= 1
-  }
-
-  const showNotificationMessage = (message: string) => {
-    setNotificationMessage(message)
-    setShowNotification(true)
-    setTimeout(() => {
-      setShowNotification(false)
-    }, 3000)
-  }
-
+  // Advanced obfuscation algorithm - nearly impossible to deobfuscate
   const advancedObfuscate = (code: string): string => {
     // Multi-layer obfuscation with various techniques
     let obfuscated = code
@@ -249,18 +184,12 @@ export default function Obfuscation() {
       return
     }
 
-    // Read file content first to validate
-    const fileContent = await selectedFile.text()
-
-    // Check if the file contains Lua code
-    if (!isLuaCode(fileContent)) {
-      showNotificationMessage("Lua not found")
-      return
-    }
-
     setIsObfuscating(true)
     setShowPanel(false)
     setCurrentStep(0)
+
+    // Read file content
+    const fileContent = await selectedFile.text()
 
     // Simulate loading steps with delays
     for (let i = 0; i < loadingSteps.length; i++) {
@@ -396,19 +325,6 @@ export default function Obfuscation() {
             <h2 className="text-3xl font-bold text-orange-400 mb-2">Code Obfuscation</h2>
             <p className="text-orange-400">Advanced Lua script obfuscation - nearly impossible to deobfuscate</p>
           </div>
-
-          {/* Notification Display */}
-          {showNotification && (
-            <div className="flex justify-center">
-              <div
-                className={`bg-black border border-red-500 text-red-400 px-6 py-3 rounded-lg transition-all duration-500 ${
-                  showNotification ? "opacity-100 scale-100" : "opacity-0 scale-95"
-                }`}
-              >
-                {notificationMessage}
-              </div>
-            </div>
-          )}
 
           {/* Obfuscation Panel */}
           <div className="flex justify-center">

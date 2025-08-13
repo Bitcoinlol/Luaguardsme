@@ -6,8 +6,15 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
   const [scriptContent, setScriptContent] = useState<string>("")
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     // Disable right-click and inspect element
     const disableRightClick = (e: MouseEvent) => e.preventDefault()
     const disableKeyboard = (e: KeyboardEvent) => {
@@ -24,7 +31,6 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
     document.addEventListener("contextmenu", disableRightClick)
     document.addEventListener("keydown", disableKeyboard)
 
-    // Check authorization and load script
     const checkAuthAndLoadScript = () => {
       try {
         // Get stored projects
@@ -44,7 +50,6 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
           )
         } else {
           // For "User Management" projects, check if current user is whitelisted
-          // In a real app, this would check against the server
           const currentUser = localStorage.getItem("luaguard_current_user") || "12345"
           const isWhitelisted = project.whitelistedUsers?.includes(currentUser)
 
@@ -62,15 +67,15 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
       }
     }
 
-    checkAuthAndLoadScript()
+    setTimeout(checkAuthAndLoadScript, 100)
 
     return () => {
       document.removeEventListener("contextmenu", disableRightClick)
       document.removeEventListener("keydown", disableKeyboard)
     }
-  }, [params.id])
+  }, [params.id, mounted])
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -83,9 +88,9 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
 
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center bg-cyber-grid">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="text-6xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent text-glow-orange">
+          <div className="text-6xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
             ACCESS DENIED
           </div>
           <div className="text-xl text-orange-300">You are not authorized to access this script</div>

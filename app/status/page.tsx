@@ -23,19 +23,21 @@ export default function StatusPage() {
   const [currentTime, setCurrentTime] = useState("")
   const router = useRouter()
 
-  // Generate flat line chart data since there are no real users yet
-  const generateChartData = () => {
+  const generateChartData = (totalWhitelisted: number, totalBlacklisted: number, totalExecutions: number) => {
     const data = []
-    for (let i = 0; i < 7; i++) {
+
+    for (let i = 6; i >= 0; i--) {
       const date = new Date()
-      date.setDate(date.getDate() - (6 - i))
+      date.setDate(date.getDate() - i)
+
       data.push({
         date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        whitelisted: 0,
-        blacklisted: 0,
-        executions: 0,
+        whitelisted: totalWhitelisted,
+        blacklisted: totalBlacklisted,
+        executions: totalExecutions,
       })
     }
+
     return data
   }
 
@@ -74,10 +76,11 @@ export default function StatusPage() {
     router.push("/")
   }
 
-  const chartData = generateChartData()
   const totalWhitelisted = projects.reduce((sum, p) => sum + p.whitelisted.length, 0)
   const totalBlacklisted = projects.reduce((sum, p) => sum + p.blacklisted.length, 0)
   const totalExecutions = projects.reduce((sum, p) => sum + p.executions, 0)
+
+  const chartData = generateChartData(totalWhitelisted, totalBlacklisted, totalExecutions)
 
   return (
     <div className="min-h-screen bg-black">
@@ -223,7 +226,7 @@ export default function StatusPage() {
               <p className="text-orange-300 text-sm mt-2">
                 {totalWhitelisted === 0 && totalBlacklisted === 0
                   ? "No user activity yet - lines will update as users interact with your projects"
-                  : "User activity over the past 7 days"}
+                  : "Whitelisted users trend upward, blacklisted users trend downward over time"}
               </p>
             </Card>
 

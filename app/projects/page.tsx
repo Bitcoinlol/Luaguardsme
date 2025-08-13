@@ -121,7 +121,7 @@ export default function ProjectsPage() {
 
     const scriptContent = await newProject.file.text()
     const projectId = Math.random().toString(36).substring(2, 15)
-    const rawLink = `https://luaguard-raw.vercel.app/script/${projectId}`
+    const rawLink = `https://luaguardsme.vercel.app/raw/${projectId}`
 
     const project: Project = {
       id: projectId,

@@ -6,30 +6,9 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Shield, UserCheck, UserX, User, Calendar, Clock, LogOut, Coins, Search, CheckCircle } from "lucide-react"
 
-interface RobloxUser {
-  id: number
-  name: string
-  displayName: string
-  description: string
-  created: string
-  isBanned: boolean
-  externalAppDisplayName: string
-  hasVerifiedBadge: boolean
-}
-
-interface UserProfile {
-  robloxUsername: string
-  robloxUserId: number
-  avatarUrl: string
-  accountCreated: string
-  displayName: string
-}
-
 export default function SettingsPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [robloxUsername, setRobloxUsername] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [keyExpiry, setKeyExpiry] = useState("")
@@ -45,12 +24,6 @@ export default function SettingsPage() {
     if (!userType || !currentKey) {
       router.push("/")
       return
-    }
-
-    // Load saved profile
-    const savedProfile = localStorage.getItem("userProfile")
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile))
     }
 
     // Set key expiry and time
@@ -79,34 +52,16 @@ export default function SettingsPage() {
 
   const fetchRobloxUser = async () => {
     if (!robloxUsername.trim()) {
-      showNotification("Please enter a Roblox username!")
+      showNotification("Please enter a Roblox ID!")
       return
     }
 
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/roblox/user?username=${encodeURIComponent(robloxUsername)}`)
-      const data = await response.json()
-
-      if (!response.ok || !data.success) {
-        showNotification(data.error || "Roblox user not found!")
-        setIsLoading(false)
-        return
-      }
-
-      const user = data.user
-
-      const newProfile: UserProfile = {
-        robloxUsername: user.name,
-        robloxUserId: user.id,
-        avatarUrl: user.avatarUrl,
-        accountCreated: new Date(user.created).toLocaleDateString(),
-        displayName: user.displayName,
-      }
-
-      setProfile(newProfile)
-      localStorage.setItem("userProfile", JSON.stringify(newProfile))
-      showNotification("Profile updated successfully!")
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      showNotification(`Welcome to LuaGuard ${robloxUsername}!`)
+      setRobloxUsername("") // Clear the input after welcome
     } catch (error) {
       console.error("Error fetching Roblox user:", error)
       showNotification("Error fetching user data. Please try again.")
@@ -227,32 +182,15 @@ export default function SettingsPage() {
                 </h3>
 
                 <div className="space-y-6">
-                  {/* Current Profile Display */}
-                  {profile && (
-                    <div className="flex items-center gap-4 p-4 bg-black border border-orange-500 rounded-lg">
-                      <Avatar className="w-16 h-16">
-                        <AvatarImage src={profile.avatarUrl || "/placeholder.svg"} alt={profile.robloxUsername} />
-                        <AvatarFallback className="bg-black border border-orange-500 text-orange-400">
-                          {profile.robloxUsername.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-orange-400">{profile.displayName}</h4>
-                        <p className="text-orange-400">@{profile.robloxUsername}</p>
-                        <p className="text-sm text-orange-400">User ID: {profile.robloxUserId}</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Roblox Username Input */}
                   <div className="space-y-4">
                     <Label htmlFor="roblox-username" className="text-orange-400">
-                      Enter your Roblox username
+                      Enter your Roblox ID
                     </Label>
                     <div className="flex gap-2">
                       <Input
                         id="roblox-username"
-                        placeholder="Roblox username"
+                        placeholder="Roblox ID"
                         value={robloxUsername}
                         onChange={(e) => setRobloxUsername(e.target.value)}
                         className="bg-black border-orange-500 text-orange-400"
@@ -297,16 +235,6 @@ export default function SettingsPage() {
                     </div>
                     <p className="text-orange-400 font-mono">{keyExpiry}</p>
                   </div>
-
-                  {profile && (
-                    <div className="p-4 bg-black border border-orange-500 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User className="w-4 h-4 text-orange-400" />
-                        <span className="text-sm font-medium text-orange-400">Roblox Account Created</span>
-                      </div>
-                      <p className="text-orange-400 font-mono">{profile.accountCreated}</p>
-                    </div>
-                  )}
                 </div>
               </Card>
             </div>

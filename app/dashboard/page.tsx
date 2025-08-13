@@ -137,6 +137,13 @@ export default function Dashboard() {
             >
               Settings
             </Button>
+            <Button
+              onClick={() => navigateToTab("obfuscation")}
+              variant="ghost"
+              className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+            >
+              Obfuscation
+            </Button>
             {userType === "owner" && (
               <Button
                 onClick={() => navigateToTab("admin")}

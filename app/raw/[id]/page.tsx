@@ -15,6 +15,7 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (!mounted) return
 
+    // Disable right-click and inspect element
     const disableRightClick = (e: MouseEvent) => e.preventDefault()
     const disableKeyboard = (e: KeyboardEvent) => {
       if (
@@ -29,11 +30,11 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
 
     document.addEventListener("contextmenu", disableRightClick)
     document.addEventListener("keydown", disableKeyboard)
-    document.addEventListener("selectstart", (e) => e.preventDefault())
 
     const checkAuthAndLoadScript = () => {
       try {
-        const projects = JSON.parse(localStorage.getItem("userProjects") || "[]")
+        // Get stored projects
+        const projects = JSON.parse(localStorage.getItem("luaguard_projects") || "[]")
         const project = projects.find((p: any) => p.id === params.id)
 
         if (!project) {
@@ -41,80 +42,26 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
           return
         }
 
-        const createProtectedScript = (
-          originalScript: string,
-          projectType: string,
-          whitelisted: string[],
-          blacklisted: string[],
-        ) => {
-          if (projectType === "free-for-all") {
-            return `-- Protected by LuaGuard - Free for All
--- Project: ${project.name}
+        // Check if project is "Free for All" or user is whitelisted
+        if (project.accessType === "freeForAll") {
+          setIsAuthorized(true)
+          setScriptContent(
+            project.protectedScript || `-- Protected Script: ${project.name}\nprint("Hello from ${project.name}!")`,
+          )
+        } else {
+          // For "User Management" projects, check if current user is whitelisted
+          const currentUser = localStorage.getItem("luaguard_current_user") || "12345"
+          const isWhitelisted = project.whitelistedUsers?.includes(currentUser)
 
-${originalScript}`
-          } else {
-            // User Management - add authorization checks
-            const whitelistArray = whitelisted.map((id) => `"${id}"`).join(", ")
-            const blacklistArray = blacklisted.map((id) => `"${id}"`).join(", ")
-
-            return `-- Protected by LuaGuard - User Management
--- Project: ${project.name}
-
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
--- Get user ID
-local userId = tostring(player.UserId)
-
--- Whitelist and Blacklist
-local whitelist = {${whitelistArray}}
-local blacklist = {${blacklistArray}}
-
--- Check if user is blacklisted
-for _, id in pairs(blacklist) do
-    if userId == id then
-        player:Kick("You are blacklisted from this script!")
-        return
-    end
-end
-
--- Check if user is whitelisted
-local isWhitelisted = false
-for _, id in pairs(whitelist) do
-    if userId == id then
-        isWhitelisted = true
-        break
-    end
-end
-
-if not isWhitelisted then
-    player:Kick("You are not whitelisted for this script!")
-    return
-end
-
--- User is authorized, run the script
-${originalScript}`
+          if (isWhitelisted) {
+            setIsAuthorized(true)
+            setScriptContent(
+              project.protectedScript || `-- Protected Script: ${project.name}\nprint("Hello from ${project.name}!")`,
+            )
           }
         }
-
-        const protectedScript = createProtectedScript(
-          project.script || "-- No script content",
-          project.type,
-          project.whitelisted || [],
-          project.blacklisted || [],
-        )
-
-        setScriptContent(protectedScript)
-        setIsAuthorized(true)
-
-        const updatedProjects = projects.map((p: any) =>
-          p.id === params.id ? { ...p, executions: (p.executions || 0) + 1 } : p,
-        )
-        localStorage.setItem("userProjects", JSON.stringify(updatedProjects))
       } catch (error) {
         console.error("Error loading script:", error)
-        setScriptContent("-- Error loading script")
-        setIsAuthorized(true)
       } finally {
         setLoading(false)
       }
@@ -139,15 +86,9 @@ ${originalScript}`
     )
   }
 
-  return (
-    <div className="relative min-h-screen bg-black">
-      {/* Background script content */}
-      <pre className="min-h-screen bg-black text-orange-100 p-4 font-mono text-sm whitespace-pre-wrap opacity-0">
-        {scriptContent}
-      </pre>
-
-      {/* Visible overlay that shows "ACCESS DENIED" but serves actual content */}
-      <div className="absolute inset-0 bg-black flex items-center justify-center pointer-events-none">
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="text-6xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
             ACCESS DENIED
@@ -156,11 +97,13 @@ ${originalScript}`
           <div className="text-sm text-orange-500/60">Script ID: {params.id}</div>
         </div>
       </div>
+    )
+  }
 
-      {/* Hidden actual script content that gets served */}
-      <div className="hidden">
-        <pre>{scriptContent}</pre>
-      </div>
-    </div>
+  // Return the actual script content for authorized users
+  return (
+    <pre className="min-h-screen bg-black text-orange-100 p-4 font-mono text-sm whitespace-pre-wrap">
+      {scriptContent}
+    </pre>
   )
 }

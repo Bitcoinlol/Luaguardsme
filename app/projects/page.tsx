@@ -121,7 +121,7 @@ export default function ProjectsPage() {
 
     const scriptContent = await newProject.file.text()
     const projectId = Math.random().toString(36).substring(2, 15)
-    const rawLink = `https://luaguardsme.vercel.app/raw/${projectId}`
+    const rawLink = `https://luaguardsme.vercel.app/api/raw/${projectId}`
 
     const project: Project = {
       id: projectId,
@@ -147,7 +147,7 @@ export default function ProjectsPage() {
   }
 
   const copyLoadstring = (project: Project) => {
-    const loadstring = `loadstring(game:HttpGet("${project.rawLink}"))()`
+    const loadstring = `loadstring(game:HttpGet("${project.rawLink}?userId=" .. game.Players.LocalPlayer.UserId))()`
     navigator.clipboard.writeText(loadstring)
     showNotification("Loadstring copied to clipboard!")
   }

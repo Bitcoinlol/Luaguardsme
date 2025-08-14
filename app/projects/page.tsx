@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
@@ -7,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Shield,
   UserCheck,
@@ -43,7 +44,7 @@ export default function ProjectsPage() {
   const [newProject, setNewProject] = useState({
     name: "",
     type: "free-for-all" as "free-for-all" | "user-management",
-    script: "", // Changed from file to script text
+    file: null as File | null,
   })
   const [newUserId, setNewUserId] = useState("")
   const [userIdType, setUserIdType] = useState<"whitelist" | "blacklist">("whitelist")
@@ -103,12 +104,22 @@ export default function ProjectsPage() {
     localStorage.setItem("userStats", JSON.stringify(globalStats))
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type === "text/plain") {
+      setNewProject((prev) => ({ ...prev, file }))
+    } else {
+      showNotification("Please upload a .txt file only!")
+    }
+  }
+
   const createProject = async () => {
-    if (!newProject.name.trim() || !newProject.script.trim()) {
-      showNotification("Please provide a project name and script code!")
+    if (!newProject.name.trim() || !newProject.file) {
+      showNotification("Please provide a project name and upload a script file!")
       return
     }
 
+    const scriptContent = await newProject.file.text()
     const projectId = Math.random().toString(36).substring(2, 15)
     const rawLink = `https://luaguardsme.vercel.app/raw/${projectId}`
 
@@ -116,7 +127,7 @@ export default function ProjectsPage() {
       id: projectId,
       name: newProject.name,
       type: newProject.type,
-      script: newProject.script, // Use script text directly
+      script: scriptContent,
       rawLink,
       whitelisted: [],
       blacklisted: [],
@@ -130,7 +141,7 @@ export default function ProjectsPage() {
     updateStats(updatedProjects)
 
     // Reset form
-    setNewProject({ name: "", type: "free-for-all", script: "" }) // Reset script instead of file
+    setNewProject({ name: "", type: "free-for-all", file: null })
     setShowCreateModal(false)
     showNotification("Project created successfully!")
   }
@@ -330,15 +341,15 @@ export default function ProjectsPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="script-code" className="text-orange-400">
-                      Script Code
+                    <Label htmlFor="script-file" className="text-orange-400">
+                      Upload Script (.txt only)
                     </Label>
-                    <Textarea
-                      id="script-code"
-                      placeholder="Paste your Lua script code here..."
-                      value={newProject.script}
-                      onChange={(e) => setNewProject((prev) => ({ ...prev, script: e.target.value }))}
-                      className="bg-black border-orange-500 text-orange-400 mt-2 min-h-[200px] font-mono"
+                    <Input
+                      id="script-file"
+                      type="file"
+                      accept=".txt"
+                      onChange={handleFileUpload}
+                      className="bg-black border-orange-500 text-orange-400 mt-2"
                     />
                   </div>
 

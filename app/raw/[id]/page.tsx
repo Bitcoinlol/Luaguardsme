@@ -60,7 +60,7 @@ local blacklisted = {${project.blacklisted.map((id: string) => `"${id}"`).join("
 -- Check if user is blacklisted
 for _, id in pairs(blacklisted) do
     if userId == id then
-        player:Kick("You are blacklisted")
+        player:Kick("You are blacklisted from this script")
         return
     end
 end
@@ -75,7 +75,7 @@ for _, id in pairs(whitelisted) do
 end
 
 if not isWhitelisted then
-    player:Kick("You are not whitelisted")
+    player:Kick("You are not whitelisted for this script")
     return
 end
 
@@ -118,21 +118,60 @@ game.Players.LocalPlayer:Kick("Error loading script")`)
   }
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "black", padding: "1rem" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "black", position: "relative" }}>
+      {/* Visual overlay - what users see */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          zIndex: 10,
+          backgroundColor: "black",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "4rem",
+            fontWeight: "bold",
+            background: "linear-gradient(to right, #f87171, #fb923c)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            marginBottom: "1rem",
+          }}
+        >
+          ACCESS DENIED
+        </div>
+        <div style={{ fontSize: "1.25rem", color: "#fdba74", marginBottom: "0.5rem" }}>
+          You are not authorized to access this script
+        </div>
+        <div style={{ fontSize: "0.875rem", color: "#fb923c", opacity: 0.6 }}>Script ID: {params.id}</div>
+      </div>
+
+      {/* Hidden script content - what loadstring actually gets */}
       <pre
         style={{
+          position: "absolute",
+          top: "-9999px",
+          left: "-9999px",
+          visibility: "hidden",
           whiteSpace: "pre-wrap",
           fontFamily: "monospace",
           fontSize: "0.875rem",
           color: "#fdba74",
-          backgroundColor: "black",
-          border: "1px solid #fb923c",
-          borderRadius: "4px",
           padding: "1rem",
         }}
       >
         {scriptContent}
       </pre>
+
+      {/* Actual content for HTTP requests */}
+      <div style={{ display: "none" }}>{scriptContent}</div>
     </div>
   )
 }

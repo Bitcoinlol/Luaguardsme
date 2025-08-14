@@ -34,6 +34,7 @@ interface Project {
   blacklisted: string[]
   executions: number
   createdAt: string
+  ownerKey: string // Added ownerKey field
 }
 
 export default function ProjectsPage() {
@@ -123,16 +124,19 @@ export default function ProjectsPage() {
     const projectId = Math.random().toString(36).substring(2, 15)
     const rawLink = `https://luaguardsme.vercel.app/raw/${projectId}`
 
+    const ownerKey = localStorage.getItem("currentKey")
+
     const project: Project = {
       id: projectId,
       name: newProject.name,
       type: newProject.type,
-      script: scriptContent,
+      script: scriptContent, // Store actual script content
       rawLink,
       whitelisted: [],
       blacklisted: [],
       executions: 0,
       createdAt: new Date().toISOString(),
+      ownerKey: ownerKey || "", // Add owner key to project
     }
 
     const updatedProjects = [...projects, project]

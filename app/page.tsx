@@ -23,6 +23,7 @@ export default function LoginPage() {
     screenshot: null as File | null,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [userIP, setUserIP] = useState("")
   const router = useRouter()
 
   const planLinks = {
@@ -44,7 +45,17 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    // Check if user already generated a free key
+    const getUserIP = async () => {
+      try {
+        const response = await fetch("https://api.ipify.org?format=json")
+        const data = await response.json()
+        setUserIP(data.ip)
+      } catch (error) {
+        console.log("Could not fetch IP address")
+      }
+    }
+    getUserIP()
+
     const freeKeyGenerated = localStorage.getItem("freeKeyGenerated")
     if (freeKeyGenerated) {
       setHasGeneratedFreeKey(true)
@@ -52,7 +63,6 @@ export default function LoginPage() {
 
     const disableRightClick = (e: MouseEvent) => e.preventDefault()
     const disableKeyboard = (e: KeyboardEvent) => {
-      // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+C, Ctrl+U, Ctrl+Shift+J, Ctrl+S
       if (
         e.key === "F12" ||
         (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "C" || e.key === "J")) ||
@@ -64,10 +74,8 @@ export default function LoginPage() {
       }
     }
 
-    // Disable drag and drop
     const disableDragDrop = (e: DragEvent) => e.preventDefault()
 
-    // Disable text selection
     const disableSelection = (e: Event) => e.preventDefault()
 
     document.addEventListener("contextmenu", disableRightClick)
@@ -112,20 +120,43 @@ export default function LoginPage() {
       return
     }
 
-    // Check if it's the owner key
     if (key === "Ownerspecialkidmelol::founderkey=yes") {
-      localStorage.setItem("userType", "owner")
-      localStorage.setItem("currentKey", key)
-      router.push("/dashboard")
-      return
+      const ownerIP = localStorage.getItem("ownerIP")
+
+      if (!ownerIP) {
+        // First time login - store owner IP
+        localStorage.setItem("ownerIP", userIP)
+        localStorage.setItem("userType", "owner")
+        localStorage.setItem("currentKey", key)
+        router.push("/dashboard")
+        return
+      } else if (ownerIP !== userIP) {
+        // Unauthorized IP trying to access owner account
+        const unauthorizedAttempts = JSON.parse(localStorage.getItem("unauthorizedAttempts") || "[]")
+        const newAttempt = {
+          ip: userIP,
+          timestamp: new Date().toLocaleString(),
+          key: key,
+          blocked: true,
+        }
+        unauthorizedAttempts.push(newAttempt)
+        localStorage.setItem("unauthorizedAttempts", JSON.stringify(unauthorizedAttempts))
+
+        showNotificationMessage("You are not allowed to login to the owners account")
+        return
+      } else {
+        // Correct owner IP
+        localStorage.setItem("userType", "owner")
+        localStorage.setItem("currentKey", key)
+        router.push("/dashboard")
+        return
+      }
     }
 
-    // Check if it's a valid key format
     if (key.startsWith("FREE_") || key.includes("MONTH_") || key.includes("YEAR_")) {
       localStorage.setItem("userType", "user")
       localStorage.setItem("currentKey", key)
 
-      // Set expiry based on key type
       const expiryDate = new Date()
       if (key.startsWith("FREE_")) {
         expiryDate.setDate(expiryDate.getDate() + 30)
@@ -166,15 +197,13 @@ export default function LoginPage() {
     try {
       const formData = new FormData()
 
-      // Add the screenshot file
       formData.append("file", proofData.screenshot, "proof.png")
 
-      // Add the webhook payload
       const webhookData = {
         embeds: [
           {
             title: "🎫 New Plan Purchase Proof",
-            color: 0xff6b35, // Orange color
+            color: 0xff6b35,
             fields: [
               {
                 name: "What they bought",
@@ -204,12 +233,11 @@ export default function LoginPage() {
 
       formData.append("payload_json", JSON.stringify(webhookData))
 
-      // Send to Discord webhook with proper multipart form data
       const response = await fetch(
         "https://discord.com/api/webhooks/1403105555840634970/PZG4DJLOdNYgM8uLnGl19LBas19aLV37FMFQap4nO4OPMjClTw7qj-Zg816uSjNSZUZL",
         {
           method: "POST",
-          body: formData, // Send as FormData, not JSON
+          body: formData,
         },
       )
 
@@ -235,7 +263,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden bg-cyber-grid select-none">
-      {/* Notification */}
       {showNotification && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
           <Card className="bg-black/90 border-orange-500/50 backdrop-blur-sm p-4 max-w-sm glow-orange">
@@ -247,7 +274,6 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* Proof Modal */}
       {showProofModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md bg-black border-orange-500 shadow-2xl shadow-orange-500/20">
@@ -337,7 +363,6 @@ export default function LoginPage() {
       <div className="flex gap-6 w-full max-w-4xl">
         <Card className="flex-1 bg-black/80 backdrop-blur-sm border-orange-500/30 shadow-2xl shadow-orange-500/20 glow-orange">
           <div className="p-8 space-y-6">
-            {/* Header with logo */}
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center gap-3">
                 <div className="relative">
@@ -351,7 +376,6 @@ export default function LoginPage() {
               <p className="text-orange-300/80 text-sm">Advanced Lua Script Protection</p>
             </div>
 
-            {/* Key input */}
             <div className="space-y-4">
               <Input
                 type="text"
@@ -390,7 +414,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Preview section */}
             <div className="space-y-4 pt-6 border-t border-orange-700/50">
               <h3 className="text-lg font-semibold text-orange-300 text-center">What LuaGuard Offers</h3>
 
@@ -416,7 +439,6 @@ export default function LoginPage() {
 
         <Card className="flex-1 bg-black/80 backdrop-blur-sm border-orange-500/30 shadow-2xl shadow-orange-500/20 glow-orange">
           <div className="p-8 space-y-6">
-            {/* Header */}
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center gap-3">
                 <div className="relative">
@@ -430,7 +452,6 @@ export default function LoginPage() {
               <p className="text-orange-300/80 text-sm">Choose Your Protection Plan</p>
             </div>
 
-            {/* Plans */}
             <div className="space-y-3">
               {Object.entries(planPrices).map(([plan, price]) => (
                 <Button
@@ -452,7 +473,6 @@ export default function LoginPage() {
               ))}
             </div>
 
-            {/* Features section */}
             <div className="space-y-4 pt-6 border-t border-orange-700/50">
               <h3 className="text-lg font-semibold text-orange-300 text-center">Plan Benefits</h3>
 

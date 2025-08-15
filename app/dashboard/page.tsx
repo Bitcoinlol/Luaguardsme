@@ -30,6 +30,33 @@ export default function Dashboard() {
       return
     }
 
+    const checkKeyValidity = () => {
+      const invalidatedKeys = JSON.parse(localStorage.getItem("invalidatedKeys") || "[]")
+      const isKeyInvalidated = invalidatedKeys.some((invalidKey: any) => invalidKey.key === storedKey)
+
+      if (isKeyInvalidated) {
+        // Key has been deleted by admin, log out user
+        localStorage.removeItem("userType")
+        localStorage.removeItem("currentKey")
+        localStorage.removeItem("keyExpiry")
+        alert("Your key has been invalidated by an administrator. You will be logged out.")
+        router.push("/")
+        return
+      }
+    }
+
+    // Check key validity immediately
+    checkKeyValidity()
+
+    // Listen for key validation triggers from admin panel
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "keyValidationTrigger") {
+        checkKeyValidity()
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+
     setUserType(storedUserType)
     if (storedExpiry) {
       setKeyExpiry(new Date(storedExpiry).toLocaleDateString())
@@ -49,7 +76,10 @@ export default function Dashboard() {
       setStats(JSON.parse(savedStats))
     }
 
-    return () => clearInterval(timeInterval)
+    return () => {
+      clearInterval(timeInterval)
+      window.removeEventListener("storage", handleStorageChange)
+    }
   }, [router])
 
   const handleLogout = () => {
@@ -144,14 +174,30 @@ export default function Dashboard() {
             >
               Obfuscation
             </Button>
+            <Button
+              onClick={() => navigateToTab("ai")}
+              variant="ghost"
+              className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+            >
+              AI
+            </Button>
             {userType === "owner" && (
-              <Button
-                onClick={() => navigateToTab("admin")}
-                variant="ghost"
-                className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
-              >
-                Generate Keys
-              </Button>
+              <>
+                <Button
+                  onClick={() => navigateToTab("admin")}
+                  variant="ghost"
+                  className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                >
+                  Generate Keys
+                </Button>
+                <Button
+                  onClick={() => navigateToTab("ips")}
+                  variant="ghost"
+                  className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                >
+                  IPs
+                </Button>
+              </>
             )}
           </div>
         </div>

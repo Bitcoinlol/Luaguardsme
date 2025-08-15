@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 
 export default function RawScriptPage({ params }: { params: { id: string } }) {
   const [scriptContent, setScriptContent] = useState<string>("")
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
@@ -36,57 +37,50 @@ export default function RawScriptPage({ params }: { params: { id: string } }) {
         const project = projects.find((p: any) => p.id === params.id)
 
         if (!project) {
-          setScriptContent(`-- Script not found
-game.Players.LocalPlayer:Kick("Script not found or has been removed")`)
           setLoading(false)
           return
         }
 
+        const getUserId = () => {
+          // In a real Roblox environment, this would be game.Players.LocalPlayer.UserId
+          // For testing, we'll use a stored user ID or default
+          return localStorage.getItem("roblox_user_id") || "12345"
+        }
+
+        const currentUserId = getUserId()
+
         if (project.type === "free-for-all") {
-          // Free for all - serve the actual script content
-          setScriptContent(project.script)
+          setIsAuthorized(true)
+          setScriptContent(
+            project.script || `-- Protected Script: ${project.name}\nprint("Hello from ${project.name}!")`,
+          )
         } else if (project.type === "user-management") {
-          const authScript = `
--- LuaGuard Authorization Check
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local userId = tostring(player.UserId)
+          const isBlacklisted = project.blacklisted?.includes(currentUserId)
+          if (isBlacklisted) {
+            setScriptContent(`
+-- LuaGuard Protection System
+game.Players.LocalPlayer:Kick("You are blacklisted from this script!")
+            `)
+            setIsAuthorized(true) // Allow the kick script to run
+            return
+          }
 
--- Whitelisted users
-local whitelisted = {${project.whitelisted.map((id: string) => `"${id}"`).join(", ")}}
--- Blacklisted users  
-local blacklisted = {${project.blacklisted.map((id: string) => `"${id}"`).join(", ")}}
-
--- Check if user is blacklisted
-for _, id in pairs(blacklisted) do
-    if userId == id then
-        player:Kick("You are blacklisted from this script")
-        return
-    end
-end
-
--- Check if user is whitelisted
-local isWhitelisted = false
-for _, id in pairs(whitelisted) do
-    if userId == id then
-        isWhitelisted = true
-        break
-    end
-end
-
-if not isWhitelisted then
-    player:Kick("You are not whitelisted for this script")
-    return
-end
-
--- User is authorized, execute the actual script
-${project.script}`
-          setScriptContent(authScript)
+          const isWhitelisted = project.whitelisted?.includes(currentUserId)
+          if (isWhitelisted) {
+            setIsAuthorized(true)
+            setScriptContent(
+              project.script || `-- Protected Script: ${project.name}\nprint("Hello from ${project.name}!")`,
+            )
+          } else {
+            setScriptContent(`
+-- LuaGuard Protection System
+game.Players.LocalPlayer:Kick("You are not whitelisted for this script!")
+            `)
+            setIsAuthorized(true) // Allow the kick script to run
+          }
         }
       } catch (error) {
         console.error("Error loading script:", error)
-        setScriptContent(`-- Error loading script
-game.Players.LocalPlayer:Kick("Error loading script")`)
       } finally {
         setLoading(false)
       }
@@ -102,76 +96,32 @@ game.Players.LocalPlayer:Kick("Error loading script")`)
 
   if (!mounted || loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          backgroundColor: "black",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#fb923c",
-        }}
-      >
-        Loading script...
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
+          <div className="text-orange-400">Loading script...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-6xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
+            ACCESS DENIED
+          </div>
+          <div className="text-xl text-orange-300">You are not authorized to access this script</div>
+          <div className="text-sm text-orange-500/60">Script ID: {params.id}</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "black", position: "relative" }}>
-      {/* Visual overlay - what users see */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          zIndex: 10,
-          backgroundColor: "black",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "4rem",
-            fontWeight: "bold",
-            background: "linear-gradient(to right, #f87171, #fb923c)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            marginBottom: "1rem",
-          }}
-        >
-          ACCESS DENIED
-        </div>
-        <div style={{ fontSize: "1.25rem", color: "#fdba74", marginBottom: "0.5rem" }}>
-          You are not authorized to access this script
-        </div>
-        <div style={{ fontSize: "0.875rem", color: "#fb923c", opacity: 0.6 }}>Script ID: {params.id}</div>
-      </div>
-
-      {/* Hidden script content - what loadstring actually gets */}
-      <pre
-        style={{
-          position: "absolute",
-          top: "-9999px",
-          left: "-9999px",
-          visibility: "hidden",
-          whiteSpace: "pre-wrap",
-          fontFamily: "monospace",
-          fontSize: "0.875rem",
-          color: "#fdba74",
-          padding: "1rem",
-        }}
-      >
-        {scriptContent}
-      </pre>
-
-      {/* Actual content for HTTP requests */}
-      <div style={{ display: "none" }}>{scriptContent}</div>
+    <div className="min-h-screen bg-black text-orange-100 p-4">
+      <pre className="font-mono text-sm whitespace-pre-wrap">{scriptContent}</pre>
     </div>
   )
 }

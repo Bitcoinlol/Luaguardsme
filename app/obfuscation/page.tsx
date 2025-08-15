@@ -71,13 +71,8 @@ export default function Obfuscation() {
     }
   }
 
-  // Advanced obfuscation algorithm - nearly impossible to deobfuscate
   const advancedObfuscate = (code: string): string => {
-    // Multi-layer obfuscation with various techniques
-    let obfuscated = code
-
-    // Layer 1: String encryption with dynamic keys
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
     const generateRandomString = (length: number) => {
       let result = ""
       for (let i = 0; i < length; i++) {
@@ -86,94 +81,183 @@ export default function Obfuscation() {
       return result
     }
 
-    // Layer 2: Variable name obfuscation with meaningless names
-    const varNames = new Set<string>()
-    obfuscated = obfuscated.replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g, (match) => {
-      if (
-        ![
-          "local",
-          "function",
-          "end",
-          "if",
-          "then",
-          "else",
-          "elseif",
-          "while",
-          "do",
-          "for",
-          "repeat",
-          "until",
-          "break",
-          "return",
-          "and",
-          "or",
-          "not",
-          "true",
-          "false",
-          "nil",
-        ].includes(match)
-      ) {
-        const newName = "_" + generateRandomString(Math.floor(Math.random() * 10) + 5)
-        varNames.add(newName)
-        return newName
-      }
-      return match
-    })
+    // Step 1: Create variable mapping for consistent renaming
+    const variableMap = new Map<string, string>()
+    const luaKeywords = new Set([
+      "and",
+      "break",
+      "do",
+      "else",
+      "elseif",
+      "end",
+      "false",
+      "for",
+      "function",
+      "if",
+      "in",
+      "local",
+      "nil",
+      "not",
+      "or",
+      "repeat",
+      "return",
+      "then",
+      "true",
+      "until",
+      "while",
+      "goto",
+      "self",
+      "print",
+      "pairs",
+      "ipairs",
+      "next",
+      "type",
+      "getmetatable",
+      "setmetatable",
+      "rawget",
+      "rawset",
+      "tostring",
+      "tonumber",
+      "string",
+      "table",
+      "math",
+      "os",
+      "io",
+      "debug",
+      "coroutine",
+      "package",
+      "require",
+      "loadstring",
+      "pcall",
+      "xpcall",
+      "error",
+      "assert",
+      "select",
+      "unpack",
+      "game",
+      "workspace",
+      "script",
+      "wait",
+      "spawn",
+      "delay",
+      "tick",
+      "warn",
+    ])
 
-    // Layer 3: String literal obfuscation
+    // Extract all identifiers and create obfuscated names
+    const identifierRegex = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g
+    let match
+    while ((match = identifierRegex.exec(code)) !== null) {
+      const identifier = match[0]
+      if (!luaKeywords.has(identifier) && !variableMap.has(identifier)) {
+        variableMap.set(identifier, `_0x${Math.random().toString(16).substr(2, 8)}`)
+      }
+    }
+
+    let obfuscated = code
+
+    // Step 2: Replace all identifiers with obfuscated names
+    for (const [original, obfuscatedName] of variableMap) {
+      const regex = new RegExp(`\\b${original}\\b`, "g")
+      obfuscated = obfuscated.replace(regex, obfuscatedName)
+    }
+
+    // Step 3: String obfuscation with multiple encoding layers
     obfuscated = obfuscated.replace(/"([^"]*)"/g, (match, str) => {
-      const encoded = str
-        .split("")
-        .map((char: string) => char.charCodeAt(0))
-        .join(",")
-      return `string.char(${encoded})`
+      const bytes = Array.from(str).map((char) => char.charCodeAt(0))
+      const encoded = bytes.map((byte) => `\\${byte.toString(8)}`).join("")
+      return `"${encoded}"`
     })
 
     obfuscated = obfuscated.replace(/'([^']*)'/g, (match, str) => {
-      const encoded = str
-        .split("")
-        .map((char: string) => char.charCodeAt(0))
-        .join(",")
-      return `string.char(${encoded})`
+      const bytes = Array.from(str).map((char) => char.charCodeAt(0))
+      const xorKey = Math.floor(Math.random() * 255) + 1
+      const encoded = bytes.map((byte) => byte ^ xorKey).join(",")
+      return `(function() local _k=${xorKey} local _d={${encoded}} local _r="" for _i=1,#_d do _r=_r..string.char(_d[_i]~_k) end return _r end)()`
     })
 
-    // Layer 4: Number obfuscation
-    obfuscated = obfuscated.replace(/\b\d+\b/g, (match) => {
-      const num = Number.parseInt(match)
-      const a = Math.floor(Math.random() * 100) + 1
-      const b = num - a
-      return `(${a}+${b})`
+    // Step 4: Number obfuscation with complex expressions
+    obfuscated = obfuscated.replace(/\b(\d+)\b/g, (match, num) => {
+      const n = Number.parseInt(num)
+      const a = Math.floor(Math.random() * 1000) + 1
+      const b = Math.floor(Math.random() * 1000) + 1
+      const c = n + a - b
+      return `(${a}-${b}+${c})`
     })
 
-    // Layer 5: Control flow obfuscation
-    const controlFlowVar = "_" + generateRandomString(8)
-    obfuscated =
-      `local ${controlFlowVar} = {${Array.from({ length: 20 }, () => Math.floor(Math.random() * 1000)).join(",")}};\n` +
-      obfuscated
-
-    // Layer 6: Dead code injection
-    const deadCodeFunctions = []
-    for (let i = 0; i < 5; i++) {
-      const funcName = "_" + generateRandomString(10)
-      const deadCode = `local function ${funcName}() local ${generateRandomString(5)} = ${Math.floor(Math.random() * 1000)}; return ${generateRandomString(5)} * 2 end`
-      deadCodeFunctions.push(deadCode)
+    // Step 5: Control flow obfuscation with fake branches
+    const controlVar = `_0x${Math.random().toString(16).substr(2, 8)}`
+    const fakeConditions = []
+    for (let i = 0; i < 10; i++) {
+      const fakeVar = `_0x${Math.random().toString(16).substr(2, 8)}`
+      fakeConditions.push(`local ${fakeVar} = ${Math.floor(Math.random() * 1000)}`)
     }
-    obfuscated = deadCodeFunctions.join("\n") + "\n" + obfuscated
 
-    // Layer 7: Bytecode-like transformation
-    const lines = obfuscated.split("\n")
+    obfuscated = `local ${controlVar} = true\n${fakeConditions.join("\n")}\n${obfuscated}`
+
+    // Step 6: Function wrapping with multiple layers
+    const wrapperFunctions = []
+    for (let i = 0; i < 5; i++) {
+      const funcName = `_0x${Math.random().toString(16).substr(2, 8)}`
+      const params = Array.from(
+        { length: Math.floor(Math.random() * 3) + 1 },
+        () => `_0x${Math.random().toString(16).substr(2, 6)}`,
+      ).join(",")
+      wrapperFunctions.push(`local function ${funcName}(${params}) return function() end end`)
+    }
+
+    obfuscated = wrapperFunctions.join("\n") + "\n" + obfuscated
+
+    // Step 7: Dead code injection with realistic patterns
+    const deadCodeBlocks = []
+    for (let i = 0; i < 15; i++) {
+      const varName = `_0x${Math.random().toString(16).substr(2, 8)}`
+      const operations = [
+        `local ${varName} = ${Math.floor(Math.random() * 1000)}`,
+        `${varName} = ${varName} * 2 + 1`,
+        `if ${varName} > 500 then ${varName} = ${varName} - 250 end`,
+        `for _i = 1, 10 do ${varName} = ${varName} + _i end`,
+      ]
+      deadCodeBlocks.push(operations[Math.floor(Math.random() * operations.length)])
+    }
+
+    obfuscated = deadCodeBlocks.join("\n") + "\n" + obfuscated
+
+    // Step 8: Bytecode-like transformation with execution flow obfuscation
+    const lines = obfuscated.split("\n").filter((line) => line.trim())
     const transformedLines = lines.map((line, index) => {
       if (line.trim() && !line.trim().startsWith("--")) {
-        const lineVar = "_" + generateRandomString(6)
-        return `local ${lineVar} = function() ${line} end; ${lineVar}()`
+        const execVar = `_0x${Math.random().toString(16).substr(2, 8)}`
+        const condVar = `_0x${Math.random().toString(16).substr(2, 8)}`
+        return `local ${condVar} = true; if ${condVar} then local ${execVar} = function() ${line} end; ${execVar}() end`
       }
       return line
     })
+
     obfuscated = transformedLines.join("\n")
 
-    // Layer 8: Final encryption wrapper
-    const wrapperVar = "_" + generateRandomString(12)
-    obfuscated = `local ${wrapperVar} = function() ${obfuscated} end; ${wrapperVar}()`
+    // Step 9: Final encryption wrapper with anti-debugging
+    const mainWrapper = `_0x${Math.random().toString(16).substr(2, 12)}`
+    const antiDebug = `_0x${Math.random().toString(16).substr(2, 8)}`
+
+    obfuscated = `
+local ${antiDebug} = function()
+  local _start = tick()
+  for _i = 1, 1000 do
+    local _dummy = _i * 2
+  end
+  if tick() - _start > 0.1 then
+    error("Debug detected")
+  end
+end
+${antiDebug}()
+
+local ${mainWrapper} = function()
+  ${obfuscated}
+end
+
+${mainWrapper}()
+`
 
     return obfuscated
   }
@@ -199,18 +283,42 @@ export default function Obfuscation() {
 
     // Perform advanced obfuscation
     const obfuscated = advancedObfuscate(fileContent)
-    setObfuscatedCode(obfuscated)
 
-    // Download the obfuscated file
-    const blob = new Blob([obfuscated], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "obfuscated.txt"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const downloadFile = (content: string, filename: string) => {
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
+
+      // Check if we're on mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+      if (isMobile) {
+        // For mobile devices, use a different approach
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          const link = document.createElement("a")
+          link.href = dataUrl
+          link.download = filename
+          link.style.display = "none"
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        }
+        reader.readAsDataURL(blob)
+      } else {
+        // Desktop approach
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = filename
+        a.style.display = "none"
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+    }
+
+    downloadFile(obfuscated, "obfuscated.txt")
 
     // Reset UI
     setTimeout(() => {

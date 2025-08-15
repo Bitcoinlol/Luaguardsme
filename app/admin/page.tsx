@@ -21,6 +21,7 @@ export default function AdminPanel() {
   const [generatedKeys, setGeneratedKeys] = useState<GeneratedKey[]>([])
   const [notification, setNotification] = useState("")
   const [copiedKey, setCopiedKey] = useState("")
+  const [deletingKey, setDeletingKey] = useState("")
   const router = useRouter()
 
   const keyTypes = [
@@ -122,6 +123,43 @@ export default function AdminPanel() {
       setTimeout(() => setCopiedKey(""), 2000)
       showNotification("Key copied to clipboard!")
     })
+  }
+
+  const deleteKey = async (keyToDelete: GeneratedKey) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete this ${keyToDelete.type} key? This will log out any user using this key.`,
+      )
+    ) {
+      return
+    }
+
+    setDeletingKey(keyToDelete.id)
+
+    try {
+      // Remove key from generated keys list
+      const updatedKeys = generatedKeys.filter((k) => k.id !== keyToDelete.id)
+      setGeneratedKeys(updatedKeys)
+      localStorage.setItem("generatedKeys", JSON.stringify(updatedKeys))
+
+      // Add key to invalidated keys list
+      const invalidatedKeys = JSON.parse(localStorage.getItem("invalidatedKeys") || "[]")
+      invalidatedKeys.push({
+        key: keyToDelete.key,
+        deletedAt: new Date().toISOString(),
+        type: keyToDelete.type,
+      })
+      localStorage.setItem("invalidatedKeys", JSON.stringify(invalidatedKeys))
+
+      // Notify all clients to check key validity
+      localStorage.setItem("keyValidationTrigger", Date.now().toString())
+
+      showNotification(`${keyToDelete.type} key deleted successfully. Users with this key will be logged out.`)
+    } catch (error) {
+      showNotification("Error deleting key. Please try again.")
+    } finally {
+      setDeletingKey("")
+    }
   }
 
   const showNotification = (message: string) => {
@@ -291,13 +329,27 @@ export default function AdminPanel() {
                         Generated: {new Date(generatedKey.generatedAt).toLocaleString()}
                       </p>
                     </div>
-                    <Button
-                      onClick={() => copyKey(generatedKey.key)}
-                      size="sm"
-                      className="bg-black border border-orange-500 text-orange-400 hover:bg-orange-500/10 ml-4"
-                    >
-                      {copiedKey === generatedKey.key ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        onClick={() => copyKey(generatedKey.key)}
+                        size="sm"
+                        className="bg-black border border-orange-500 text-orange-400 hover:bg-orange-500/10"
+                      >
+                        {copiedKey === generatedKey.key ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        onClick={() => deleteKey(generatedKey)}
+                        size="sm"
+                        disabled={deletingKey === generatedKey.id}
+                        className="bg-red-900 border border-red-500 text-red-400 hover:bg-red-500/10"
+                      >
+                        {deletingKey === generatedKey.id ? (
+                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          "Delete"
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
